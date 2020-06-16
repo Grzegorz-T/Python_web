@@ -1,0 +1,48 @@
+{% extends "form.html" %}
+{% block content1 %}
+<label>Środki<div id="money">{{money}}</div></label>
+{% endblock %}
+{% block content2 %}
+<table class="table table-striped">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">Stock</th>
+            <th scope="col">Price</th>
+            <th scope="col">Change</th>
+            <th scope="col">Change perc</th>
+            <th scope="col">Opening</th>
+            <th scope="col">Max</th>
+            <th scope="col">Min</th>
+            <th scope="col">Sell/Buy</th>
+            <th scope="col">O/V</th>
+            <th scope="col">Profit</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for stock in stocks %}
+        <tr>
+            <th>{{stock.id}}</th>
+            <td>{{stock.name}}</td>
+            <td>{{stock.price}}</td>
+            <td>{{stock.change}}</td>
+            <td>{{stock.perc}}</td>
+            <td>{{stock.opening}}</td>
+            <td>{{stock.stock_max}}</td>
+            <td>{{stock.stock_min}}</td>
+            <td>
+                <form class="form-inline">
+                    <div class="form-group">
+                        <input type="number" id="nameInput{{stock.id}}" min="-100000" max="100000" value="0">
+                        <button type="submit" class="btn btn-default btn-outline-success" style="color: rgb(0, 255, 213);" member_id="{{stock.id}}" value="{{stock.price}}"></button>
+                    </div>
+                </form>
+            </td>
+            <td>
+                <div id="quantity{{stock.id}}">{{quantity[stock.id]*stock.price_dot}}</div>
+                <div id="bought{{stock.id}}">{{bought[stock.id]}}</div>
+            </td>
+            <td>{{stock.id}}</td>
+        </tr>
+        {% endfor %}
+{% endblock %}
