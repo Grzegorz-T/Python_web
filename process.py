@@ -8,8 +8,6 @@ from flask_sqlalchemy import SQLAlchemy
 import pymysql
 pymysql.install_as_MySQLdb()
 from apscheduler.schedulers.background import BackgroundScheduler
-import time
-import datetime
 
 def make_soup(url):
 	url = requests.get(url)
@@ -18,8 +16,8 @@ def make_soup(url):
 
 def get_stocks_size():
 	soup = make_soup('https://www.bankier.pl/gielda/notowania/akcje')
-	size = len(soup.find_all("tr"))
-	return size
+	a = len(soup.find_all("tr"))
+	return a
 
 def get_stocks():
 	soup = make_soup('https://www.bankier.pl/gielda/notowania/akcje')
@@ -55,10 +53,21 @@ def update_stocks():
     print("updated")
     return num
 
+def is_number(n):
+    try:
+        int(n)
+        return True
+    except ValueError:
+        return  False
+
 
 app = Flask(__name__)
+app.secret_key = "topsecret"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root-a@localhost/test'
 db = SQLAlchemy(app)
+app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
+app.config['SESSION_REFRESH_EACH_REQUEST'] = False
+
 
 class Stocks(db.Model):
 	__tablename__='stocks'
@@ -83,6 +92,7 @@ class Stocks(db.Model):
 		self.stock_min = stock_min
 		self.price_dot = price_dot
 
+
 class Member:
 	money = 20000
 	max_orders = 200
@@ -105,30 +115,33 @@ def index():
 
 @app.route('/process', methods=['POST'])
 def counter():
-	update_stocks()
-	input = int(request.form['quantity'])
-	if(input!=0 and input<=100000 and input>=-100000):
-		ids = int(request.form['id'])
-		money = Member.money
-		stock = Stocks.query.filter_by(id=ids).first()
-		price = stock.price_dot
+	if(is_number(request.form['quantity'])):
+		input = int(request.form['quantity'])
+		if(input!=0 and input<=100000 and input>=-100000):
+			update_stocks()
+			ids = int(request.form['id'])
+			money = Member.money
+			stock = Stocks.query.filter_by(id=ids).first()
+			price = stock.price_dot
 
-		if(input>int(money/price)):
-			input = int(money/price)
-		elif input<-Member.quant[ids]:
-			input = -Member.quant[ids]
+			if(input>int(money/price)):
+				input = int(money/price)
+			elif input<-Member.quant[ids]:
+				input = -Member.quant[ids]
 
-		if(Member.quant[ids]+input>=0):
-			Member.quant[ids] = Member.quant[ids] + input
-			Member.bought[ids] = round(price*Member.quant[ids],2)
-			Member.money = round(Member.money - price*input,4)
-			return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids]})
-		
+			if(Member.quant[ids]+input>=0):
+				Member.quant[ids] = Member.quant[ids] + input
+				Member.bought[ids] = round(price*Member.quant[ids],2)
+				Member.money = round(Member.money - price*input,4)
+				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids]})
+			
+			else:
+				Member.quant[ids]= 0
+				Member.bought[ids] = 0
+				Member.money = round(Member.money - price*input,4)
+				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids]})
 		else:
-			Member.money = round(Member.money - price*input,4)
-			Member.quant[ids]= 0
-			Member.bought[ids] = 0
-			return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids]})
+			return render_template('website.html')
 	else:
 		return render_template('website.html')
 
@@ -137,5 +150,4 @@ def page():
 	return render_template('form.html')
 
 if __name__ == '__main__':
-	app.run(debug=True)
-	
+	app.run(debug=False)
