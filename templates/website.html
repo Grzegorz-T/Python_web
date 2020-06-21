@@ -34,12 +34,12 @@
                 <form class="form-inline">
                     <div class="form-group">
                         <input type="number" id="nameInput{{stock.id}}" min="-100000" max="100000" value="0">
-                        <button type="submit" class="btn btn-default btn-outline-success" style="color: rgb(0, 255, 213);" member_id="{{stock.id}}" value="{{stock.price}}"></button>
+                        <button type="submit" class="btn btn-default btn-outline-success" style="color: rgb(0, 255, 213);" member_id="{{stock.id}}" value="{{stock.price_dot}}"></button>
                     </div>
                 </form>
             </td>
             <td>
-                <div id="quantity{{stock.id}}">{{quantity[stock.id]*stock.price_dot}}</div>
+                <div id="quantity{{stock.id}}">{{quantity[stock.id]}}</div>
                 <div id="bought{{stock.id}}">{{bought[stock.id]}}</div>
             </td>
             <td>{{stock.id}}</td>

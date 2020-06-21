@@ -18,8 +18,8 @@ def make_soup(url):
 
 def get_stocks_size():
 	soup = make_soup('https://www.bankier.pl/gielda/notowania/akcje')
-	a = len(soup.find_all("tr"))
-	return a
+	size = len(soup.find_all("tr"))
+	return size
 
 def get_stocks():
 	soup = make_soup('https://www.bankier.pl/gielda/notowania/akcje')
@@ -29,18 +29,25 @@ def get_stocks():
 	for i,record in enumerate(soup.find_all("tr")):
 		for j,data in enumerate(record.findAll("td")):
 			tab[i-1].append(data.text.strip())
-			if(j==9 and tab[i-1][1]!='LPP'):
+		if(i>1 and i!=10):
+			if(tab[i-1][1]=='LPP'):
+				tab[i-1][2] = tab[i-1][2].replace(u'\xa0', u'')
+			if(i>10):
+				upd = Stocks.query.filter_by(id=i-2).first()
+				upd.id = i-2
+			else:
 				upd = Stocks.query.filter_by(id=i-1).first()
-				upd.id = tab[i-1][0]
-				upd.name = tab[i-1][1]
-				upd.price = tab[i-1][2]
-				upd.change = tab[i-1][3]
-				upd.perc = tab[i-1][4]
-				upd.opening = tab[i-1][7]
-				upd.stock_max = tab[i-1][8]
-				upd.stock_min = tab[i-1][9]
-				upd.price_dot = float(tab[i-1][2].replace(',','.'))
-	db.session.commit() 
+				upd.id = i-1
+			upd.name = tab[i-1][1]
+			upd.price = tab[i-1][2]
+			upd.change = tab[i-1][3]
+			upd.perc = tab[i-1][4]
+			upd.opening = tab[i-1][7]
+			upd.stock_max = tab[i-1][8]
+			upd.stock_min = tab[i-1][9]
+			upd.price_dot = float(tab[i-1][2].replace(',','.'))
+
+	db.session.commit()
 	return tab
 
 def update_stocks():
@@ -50,7 +57,6 @@ def update_stocks():
 
 
 app = Flask(__name__)
-app.secret_key = "topsecret"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root-a@localhost/test'
 db = SQLAlchemy(app)
 
@@ -77,7 +83,6 @@ class Stocks(db.Model):
 		self.stock_min = stock_min
 		self.price_dot = price_dot
 
-
 class Member:
 	money = 20000
 	max_orders = 200
@@ -91,21 +96,23 @@ class Member:
 def index():
 	update_stocks()
 	stocks = Stocks.query.all()
+	for i,stock in enumerate(stocks):
+		Member.bought[i] = round(stock.price_dot*Member.quant[i],2)
 	money = Member.money
 	quantity = Member.quant
-	bought = Member.quant
+	bought = Member.bought
 	return render_template('website.html', stocks=stocks, money = money, quantity = quantity, bought = bought)
 
 @app.route('/process', methods=['POST'])
 def counter():
 	update_stocks()
-	input = int(request.form['name'])
-	ids = int(request.form['id'])
-	money = Member.money
-
+	input = int(request.form['quantity'])
 	if(input!=0 and input<=100000 and input>=-100000):
+		ids = int(request.form['id'])
+		money = Member.money
 		stock = Stocks.query.filter_by(id=ids).first()
 		price = stock.price_dot
+
 		if(input>int(money/price)):
 			input = int(money/price)
 		elif input<-Member.quant[ids]:
@@ -113,13 +120,17 @@ def counter():
 
 		if(Member.quant[ids]+input>=0):
 			Member.quant[ids] = Member.quant[ids] + input
+			Member.bought[ids] = round(price*Member.quant[ids],2)
 			Member.money = round(Member.money - price*input,4)
-			return jsonify({'money': Member.money, 'name' : Member.quant[ids], 'value' : Member.quant[ids]})
+			return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids]})
 		
 		else:
 			Member.money = round(Member.money - price*input,4)
 			Member.quant[ids]= 0
-			return jsonify({'money': Member.money, 'name' : Member.quant[ids]})
+			Member.bought[ids] = 0
+			return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids]})
+	else:
+		return render_template('website.html')
 
 @app.route('/page')
 def page():
