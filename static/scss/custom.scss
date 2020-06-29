@@ -1,0 +1,20 @@
+$theme-colors:(
+    "success": rgb(10, 255, 255)
+);
+
+$table-accent-bg: rgba(#dc3545, .05);
+$table-hover-color:  #dc3545;
+$table-hover-bg:  rgba(#dc3545, .075);
+$table-active-bg: rgba(#dc3545, .075);
+$border-radius: 10rem;
+$success: rgb(10, 255, 243);
+
+
+
+@import "../../node_modules/bootstrap/scss/bootstrap";
+
+
+.main-form{
+    width: auto;
+    margin: auto;
+}

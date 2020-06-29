@@ -10,8 +10,8 @@ $(document).ready(function() {
 			data : {
 				id: member_id,
 				quantity: quant,
-				value: quant*price,	
-				money: money-quant*price
+				value: quant*price,
+				money: money-(quant*price)
 			},
 			type : 'POST',
 			url : '/process'

@@ -5,16 +5,29 @@
 
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 
-	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <script src="{{ url_for('static', filename='js/form.js') }}"></script>
+    <script type="text/javascript">
+        var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    </script>
+    <script type="text/javascript">
+        var intervalID = setInterval(update_values,10000);
+        function update_values() {
+        $.getJSON($SCRIPT_ROOT + '/_stuff',
+                    
+            function(data) {
 
-	<script src="{{ url_for('static', filename='js/form.js') }}"></script>
+			    $(stocks).change
+                console.log(data)
+            });
+            
+            };
+    </script>
 </head>
-<body>
+<body onload="update_values();">
 
-
-	<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <a class="navbar-brand" href="#">OpenStock</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -43,6 +56,10 @@
                 </li>
                 <button class="btn btn-outline-success">tap</button>
             </ul>
+            <span id="result">?</span>
+            <script>
+                document.stocks.innerHTML;
+            </script>
             {% block content1 %}
             {% endblock %}
             <form class="form-inline my-2 my-lg-0">
