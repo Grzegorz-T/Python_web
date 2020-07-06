@@ -12,22 +12,39 @@
         var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
     </script>
     <script type="text/javascript">
-        var intervalID = setInterval(update_values,10000);
+        var intervalID = setInterval(update_values,60000);
         function update_values() {
-        $.getJSON($SCRIPT_ROOT + '/_stuff',
-                    
-            function(data) {
-
-			    $(stocks).change
+           
+        $.getJSON($SCRIPT_ROOT + '/_update',
+            
+            function(data) {        
+                $('#result').text(data.result);
+                for(var i = 0; i < 453; i++) {
+                $('#name'+i).text(data.stocks[i]['name']);
+                $('#price'+i).text(data.stocks[i]['price']);
+                $('#change'+i).text(data.stocks[i]['change']);
+                $('#perc'+i).text(data.stocks[i]['perc']);
+                $('#opening'+i).text(data.stocks[i]['opening']);
+                $('#stock_max'+i).text(data.stocks[i]['stock_max']);
+                $('#stock_min'+i).text(data.stocks[i]['stock_min']);
+                $('#bought'+i).text('Value: '+data.bought[i]+'$');
+                $('#profit'+i).text(data.profit[i]+'%');
+                }
                 console.log(data)
             });
             
             };
     </script>
+    <style>
+        .table.sticky th{
+            position: sticky;
+            top: 71px;
+        }
+    </style>
 </head>
 <body onload="update_values();">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <a class="navbar-brand" href="#">OpenStock</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -55,13 +72,17 @@
                     <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a>
                 </li>
                 <button class="btn btn-outline-success">tap</button>
+                {% block content1 %}
+                {% endblock %}
             </ul>
             <span id="result">?</span>
+            
             <script>
-                document.stocks.innerHTML;
+                document.getElementById("result").innerHTML;
+                document.getElementById("stocks").innerHTML;
+                document.getElementById("bought").innerHTML;
+                document.getElementById("profit").innerHTML;
             </script>
-            {% block content1 %}
-            {% endblock %}
             <form class="form-inline my-2 my-lg-0">
                 <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
                 <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>

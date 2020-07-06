@@ -28,7 +28,7 @@ def get_stocks_size():
 def get_stocks():
 	soup = make_soup('https://www.bankier.pl/gielda/notowania/akcje')
 	a = len(soup.find_all("tr"))
-	tab = [[i] for i in range(a-2)]
+	tab = [[i] for i in range(a-1)]
 
 	for i,record in enumerate(soup.find_all("tr")):
 		for j,data in enumerate(record.findAll("td")):
@@ -41,10 +41,10 @@ def get_stocks():
 				tab[i-1][9] = tab[i-1][2].replace(u'\xa0', u'')
 			if(i>10):
 				upd = Stocks.query.filter_by(id=i-2).first()
-				upd.id = i-2
+				upd.id = i - 2
 			else:
 				upd = Stocks.query.filter_by(id=i-1).first()
-				upd.id = i-1
+				upd.id = i - 1
 			upd.name = tab[i-1][1]
 			upd.price = tab[i-1][2].replace(',','.')
 			upd.change = float(tab[i-1][3].replace(',','.'))
@@ -52,8 +52,6 @@ def get_stocks():
 			upd.opening = float(tab[i-1][7].replace(',','.'))
 			upd.stock_max = float(tab[i-1][8].replace(',','.'))
 			upd.stock_min = float(tab[i-1][9].replace(',','.'))
-			upd.price_dot = float(tab[i-1][2].replace(',','.'))
-			
 	db.session.commit()
 	return tab
 
@@ -71,8 +69,8 @@ def is_number(n):
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'mysecret'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root-a@localhost/test'
+app.config['SECRET_KEY'] = 'mysecrets'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root-a@localhost/website'
 app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
 app.config['SESSION_REFRESH_EACH_REQUEST'] = False
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -89,9 +87,8 @@ class Stocks(db.Model):
 	opening = db.Column('opening', db.Float)
 	stock_max = db.Column('max', db.Float)
 	stock_min = db.Column('min', db.Float)
-	price_dot = db.Column('price_dot', db.Float)
 
-	def __init__(self, id, name, price, change, perc, opening, stock_max, stock_min, price_dot):
+	def __init__(self, id, name, price, change, perc, opening, stock_max, stock_min):
 		self.id = id
 		self.name = name
 		self.price = price
@@ -100,12 +97,10 @@ class Stocks(db.Model):
 		self.opening = opening
 		self.stock_max = stock_max
 		self.stock_min = stock_min
-		self.price_dot = price_dot
 
 class StockSchema(ModelSchema):
 	class Meta:
 		model = Stocks
-
 
 class Member:
 	money = 20000
@@ -114,15 +109,17 @@ class Member:
 	bought = [0 for i in range(get_stocks_size())]
 	quant = [0 for i in range(get_stocks_size())]
 	profit = [0 for i in range(get_stocks_size())]
-	orders = [[[0 for i in range(2)]for i in range(200)]for i in range(get_stocks_size())]
+	orders = [np.zeros([1,2]) for i in range(get_stocks_size())]
 
 @app.route('/')
 def index():
 	update_stocks()
 	stocks = Stocks.query.all()
 	for i,stock in enumerate(stocks):
-		Member.bought[i] = round(stock.price_dot*Member.quant[i],2)
-	return render_template('website.html', stocks = stocks, money = Member.money, quantity = Member.quant, bought = Member.bought)
+		Member.bought[i] = round(stock.price*Member.quant[i],2)
+	schema = StockSchema(many=True)
+	stockss = schema.dump(stocks)
+	return render_template('website.html', stocks = stockss, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
 
 @app.route('/process', methods=['POST'])
 def counter():
@@ -133,7 +130,7 @@ def counter():
 			ids = int(request.form['id'])
 			money = Member.money
 			stock = Stocks.query.filter_by(id=ids).first()
-			price = stock.price_dot
+			price = stock.price
 
 			if(input>int(money/price)):
 				input = int(money/price)
@@ -144,13 +141,29 @@ def counter():
 				Member.quant[ids] = Member.quant[ids] + input
 				Member.bought[ids] = round(price*Member.quant[ids],3)
 				Member.money = round(Member.money - price*input,4)
+				if(input>0):
+					Member.orders[ids]=np.insert(Member.orders[ids],len(Member.orders[ids])-1,[input,stock.price],0)
+				else:
+					order_value = -input
+					if(Member.orders[ids][0][0]!=0):
+						for i in range(len(Member.orders[ids])-1):
+							if(order_value>=Member.orders[ids][0][0]):
+								order_value = order_value - Member.orders[ids][0][0]
+								Member.orders[ids]=np.delete(Member.orders[ids],0,0)
+							else:
+								Member.orders[ids][0][0]=Member.orders[ids][0][0]-order_value
+								order_value = 0
+								break
+
 				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids]})
 			
 			else:
 				Member.quant[ids]= 0
 				Member.bought[ids] = 0
+				Member.profit[ids] = 0
 				Member.money = round(Member.money - price*input,4)
-				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids]})
+				Member.orders[ids]=np.zeros([1,2])
+				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids], 'profit': Member.profit[ids]})
 	else:
 		return render_template('website.html')
 
@@ -158,16 +171,24 @@ def counter():
 def page():
 	return render_template('form.html')
 
-@app.route('/_stuff', methods = ['GET','POST'])
-def stuff():
+@app.route('/_update', methods = ['GET','POST'])
+def update():
+	update_stocks()
 	stocks = Stocks.query.all()
-	'''for i,stock in enumerate(stocks):
-		stock.price.replace(',','.')
-		Member.bought[i] = round(stock.price_dot*Member.quant[i],2)'''
 	schema = StockSchema(many=True)
-	result = schema.dumps(stocks)
-	print(result)
-	return jsonify(stocks = result)
+	stockss = schema.dump(stocks)
+	for i,stock in enumerate(stocks):
+		Member.bought[i] = round(stock.price*Member.quant[i],2)
+	for i in range(get_stocks_size()):
+		b_value = 0
+		if(len(Member.orders[i])>1):
+			for j in range(len(Member.orders[i])-1):
+				b_value += Member.orders[i][j][0]*Member.orders[i][j][1]
+			print(b_value,'!=',Member.bought[i])
+			if(b_value!=Member.bought[i]):
+				print(round((Member.bought[i] - b_value)/b_value*100,2))
+				Member.profit[i] = round(((Member.bought[i] - b_value)/b_value)*100,2)
+	return jsonify(stocks = stockss, result = time.time(), bought = Member.bought, profit = Member.profit )
 
 if __name__ == '__main__':
 	app.run(debug=True)

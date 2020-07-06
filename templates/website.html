@@ -1,9 +1,9 @@
 {% extends "form.html" %}
 {% block content1 %}
-<label>Środki<div id="money">{{money}}</div></label>
+<label>Środki<div id="money"><a>{{money}}$</a></div></label>
 {% endblock %}
 {% block content2 %}
-<table class="table table-striped table-hover">
+<table class="table table-striped table-hover sticky">
     <thead class="thead-dark">
         <tr>
             <th scope="col">#</th>
@@ -19,30 +19,30 @@
             <th scope="col">Profit</th>
         </tr>
     </thead>
-    <tbody>
+    <tbody id="stocks">
         {% for stock in stocks %}
         <tr>
-            <th>{{stock.id}}</th>
-            <td>{{stock.name}}</td>
-            <td>{{stock.price}}</td>
-            <td>{{stock.change}}</td>
-            <td>{{stock.perc}}</td>
-            <td>{{stock.opening}}</td>
-            <td>{{stock.stock_max}}</td>
-            <td>{{stock.stock_min}}</td>
+            <td>{{stocks.index(stock)+1}}</td>
+            <td id="name{{stock['id']}}">{{stock['name']}}</td>
+            <td id="price{{stock['id']}}">{{stock['price']}}</td>
+            <td id="change{{stock['id']}}">{{stock['change']}}</td>
+            <td id="perc{{stock['id']}}">{{stock['perc']}}</td>
+            <td id="opening{{stock['id']}}">{{stock['opening']}}</td>
+            <td id="stock_max{{stock['id']}}">{{stock['stock_max']}}</td>
+            <td id="stock_min{{stock['id']}}">{{stock['stock_min']}}</td>
             <td>
                 <form class="form-inline">
                     <div class="form-group">
-                        <input type="number" id="Stock_Input{{stock.id}}" min="-100000" max="100000" value="0">
-                        <button type="submit" class="btn btn-default btn-outline-success" style="color: rgb(0, 255, 213);" member_id="{{stock.id}}" value="{{stock.price_dot}}"></button>
+                        <input type="number" id="Stock_Input{{stock['id']}}" min="-100000" max="100000" value="0">
+                        <button type="submit" class="btn btn-default btn-outline-success" style="color: rgb(0, 255, 213);" member_id="{{stock['id']}}" value="{{stock['price']}}"></button>
                     </div>
                 </form>
             </td>
             <td>
-                <div id="quantity{{stock.id}}">{{quantity[stock.id]}}</div>
-                <div id="bought{{stock.id}}">{{bought[stock.id]}}</div>
+                <div id="quantity{{stock['id']}}">Owned: {{quantity[stock['id']]}}</div>
+                <div id="bought{{stock['id']}}">Value: {{bought[stock['id']]}}$</div>
             </td>
-            <td>{{stock.id}}</td>
+            <td id="profit{{stock['id']}}">{{profit[stock['id']]}}</td>
         </tr>
         {% endfor %}
 {% endblock %}
