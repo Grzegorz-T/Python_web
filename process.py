@@ -6,8 +6,7 @@ from bs4 import BeautifulSoup
 from flask import Flask, redirect, url_for, render_template, request, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, send
-import pymysql
-pymysql.install_as_MySQLdb()
+import MySQLdb
 from apscheduler.schedulers.background import BackgroundScheduler
 import time
 import webbrowser
@@ -31,7 +30,7 @@ def get_stocks():
 	tab = [[i] for i in range(a-1)]
 
 	for i,record in enumerate(soup.find_all("tr")):
-		for j,data in enumerate(record.findAll("td")):
+		for data in record.findAll("td"):
 			tab[i-1].append(data.text.strip())
 		if(i>0 and i!=10):
 			if(tab[i-1][1]=='LPP'):
@@ -67,6 +66,16 @@ def is_number(n):
     except ValueError:
         return  False
 
+def count_profit():
+	for i in range(get_stocks_size()):
+		b_value = 0
+		if(len(Member.orders[i])>1):
+			for j in range(len(Member.orders[i])-1):
+				b_value += Member.orders[i][j][0]*Member.orders[i][j][1]
+			if(b_value!=Member.bought[i]):
+				Member.profit[i] = round(((Member.bought[i] - b_value)/b_value)*100,3)
+		else:
+			Member.profit[i]=0
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mysecrets'
@@ -103,7 +112,7 @@ class StockSchema(ModelSchema):
 		model = Stocks
 
 class Member:
-	money = 20000
+	money = 20000000
 	max_orders = 200
 	id = [i for i in range(255)]
 	bought = [0 for i in range(get_stocks_size())]
@@ -115,17 +124,17 @@ class Member:
 def index():
 	update_stocks()
 	stocks = Stocks.query.all()
-	for i,stock in enumerate(stocks):
-		Member.bought[i] = round(stock.price*Member.quant[i],2)
 	schema = StockSchema(many=True)
-	stockss = schema.dump(stocks)
-	return render_template('website.html', stocks = stockss, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+	stocks_list = schema.dump(stocks)
+	return render_template('website.html', stocks = stocks_list, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
 
 @app.route('/process', methods=['POST'])
 def counter():
+
 	if(is_number(request.form['quantity'])):
 		input = int(request.form['quantity'])
-		if(input!=0 and input<=100000 and input>=-100000):
+
+		if(input!=0 and input<=1000000 and input>=-1000000):
 			update_stocks()
 			ids = int(request.form['id'])
 			money = Member.money
@@ -137,24 +146,24 @@ def counter():
 			elif input<-Member.quant[ids]:
 				input = -Member.quant[ids]
 
-			if(Member.quant[ids]+input>=0):
+			if(Member.quant[ids]+input>0):
 				Member.quant[ids] = Member.quant[ids] + input
 				Member.bought[ids] = round(price*Member.quant[ids],3)
 				Member.money = round(Member.money - price*input,4)
+
 				if(input>0):
 					Member.orders[ids]=np.insert(Member.orders[ids],len(Member.orders[ids])-1,[input,stock.price],0)
 				else:
 					order_value = -input
 					if(Member.orders[ids][0][0]!=0):
-						for i in range(len(Member.orders[ids])-1):
+						while(order_value != 0):
 							if(order_value>=Member.orders[ids][0][0]):
 								order_value = order_value - Member.orders[ids][0][0]
 								Member.orders[ids]=np.delete(Member.orders[ids],0,0)
 							else:
 								Member.orders[ids][0][0]=Member.orders[ids][0][0]-order_value
 								order_value = 0
-								break
-
+				count_profit()
 				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids]})
 			
 			else:
@@ -164,6 +173,7 @@ def counter():
 				Member.money = round(Member.money - price*input,4)
 				Member.orders[ids]=np.zeros([1,2])
 				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids], 'profit': Member.profit[ids]})
+	
 	else:
 		return render_template('website.html')
 
@@ -173,22 +183,17 @@ def page():
 
 @app.route('/_update', methods = ['GET','POST'])
 def update():
+	
 	update_stocks()
 	stocks = Stocks.query.all()
 	schema = StockSchema(many=True)
-	stockss = schema.dump(stocks)
+	stocks_list = schema.dump(stocks)
+
 	for i,stock in enumerate(stocks):
 		Member.bought[i] = round(stock.price*Member.quant[i],2)
-	for i in range(get_stocks_size()):
-		b_value = 0
-		if(len(Member.orders[i])>1):
-			for j in range(len(Member.orders[i])-1):
-				b_value += Member.orders[i][j][0]*Member.orders[i][j][1]
-			print(b_value,'!=',Member.bought[i])
-			if(b_value!=Member.bought[i]):
-				print(round((Member.bought[i] - b_value)/b_value*100,2))
-				Member.profit[i] = round(((Member.bought[i] - b_value)/b_value)*100,2)
-	return jsonify(stocks = stockss, result = time.time(), bought = Member.bought, profit = Member.profit )
+
+	count_profit()
+	return jsonify(stocks = stocks_list, result = time.time(), bought = Member.bought, profit = Member.profit )
 
 if __name__ == '__main__':
 	app.run(debug=True)

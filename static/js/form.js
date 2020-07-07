@@ -20,8 +20,8 @@ $(document).ready(function() {
 		req.done(function(data) {
 			$('#quantity'+member_id).text('Owned: '+ data.quantity)
 			$('#bought'+member_id).text('Value: '+ data.value +'$')
-			$('#profit'+member_id).text(data.profit)
-			$('#money').text(data.money)
+			$('#profit'+member_id).text(data.profit +'%')
+			$('#money').text(data.money +'%')
 		});
 
 		event.preventDefault();
