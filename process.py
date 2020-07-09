@@ -4,6 +4,7 @@ import pandas as pd
 import html5lib
 from bs4 import BeautifulSoup
 from flask import Flask, redirect, url_for, render_template, request, session, jsonify
+from sqlalchemy import desc
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, send
 import MySQLdb
@@ -47,7 +48,7 @@ def get_stocks():
 			upd.name = tab[i-1][1]
 			upd.price = tab[i-1][2].replace(',','.')
 			upd.change = float(tab[i-1][3].replace(',','.'))
-			upd.perc = tab[i-1][4].replace(',','.')
+			upd.perc = float(tab[i-1][4].replace(',','.').replace('%',''))
 			upd.opening = float(tab[i-1][7].replace(',','.'))
 			upd.stock_max = float(tab[i-1][8].replace(',','.'))
 			upd.stock_min = float(tab[i-1][9].replace(',','.'))
@@ -77,6 +78,7 @@ def count_profit():
 		else:
 			Member.profit[i]=0
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mysecrets'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root-a@localhost/website'
@@ -92,7 +94,7 @@ class Stocks(db.Model):
 	name = db.Column('name', db.Unicode)
 	price = db.Column('price', db.Float)
 	change = db.Column('change', db.Float)
-	perc = db.Column('perc', db.Unicode)
+	perc = db.Column('perc', db.Float)
 	opening = db.Column('opening', db.Float)
 	stock_max = db.Column('max', db.Float)
 	stock_min = db.Column('min', db.Float)
@@ -113,7 +115,8 @@ class StockSchema(ModelSchema):
 
 class Member:
 	money = 20000000
-	max_orders = 200
+	table_ordered = 0
+	top_down = True
 	id = [i for i in range(255)]
 	bought = [0 for i in range(get_stocks_size())]
 	quant = [0 for i in range(get_stocks_size())]
@@ -126,21 +129,22 @@ def index():
 	stocks = Stocks.query.all()
 	schema = StockSchema(many=True)
 	stocks_list = schema.dump(stocks)
+	Member.table_ordered = 0
 	return render_template('website.html', stocks = stocks_list, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
 
 @app.route('/process', methods=['POST'])
 def counter():
-
 	if(is_number(request.form['quantity'])):
 		input = int(request.form['quantity'])
 
 		if(input!=0 and input<=1000000 and input>=-1000000):
 			update_stocks()
 			ids = int(request.form['id'])
+			print(ids)
 			money = Member.money
 			stock = Stocks.query.filter_by(id=ids).first()
 			price = stock.price
-
+			print(stock.id)
 			if(input>int(money/price)):
 				input = int(money/price)
 			elif input<-Member.quant[ids]:
@@ -164,7 +168,7 @@ def counter():
 								Member.orders[ids][0][0]=Member.orders[ids][0][0]-order_value
 								order_value = 0
 				count_profit()
-				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids]})
+				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids], 'money':Member.money, 'profit': Member.profit[ids]})
 			
 			else:
 				Member.quant[ids]= 0
@@ -172,7 +176,7 @@ def counter():
 				Member.profit[ids] = 0
 				Member.money = round(Member.money - price*input,4)
 				Member.orders[ids]=np.zeros([1,2])
-				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids], 'profit': Member.profit[ids]})
+				return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids], 'money':Member.money, 'profit': Member.profit[ids]})
 	
 	else:
 		return render_template('website.html')
@@ -181,19 +185,97 @@ def counter():
 def page():
 	return render_template('form.html')
 
-@app.route('/_update', methods = ['GET','POST'])
+@app.route('/_update', methods = ['GET', 'POST'])
 def update():
-	
 	update_stocks()
-	stocks = Stocks.query.all()
+	if(Member.table_ordered==0):
+		stocks = Stocks.query.all()
+	elif(Member.table_ordered==1):
+		stocks = Stocks.query.order_by('name').all()
+	elif(Member.table_ordered==2):
+		stocks = Stocks.query.order_by('price').all()
+	elif(Member.table_ordered==3):
+		stocks = Stocks.query.order_by('change').all()
+	elif(Member.table_ordered==4):
+		stocks = Stocks.query.order_by('perc').all()
+	elif(Member.table_ordered==5):
+		stocks = Stocks.query.order_by('opening').all()
+	elif(Member.table_ordered==6):
+		stocks = Stocks.query.order_by('max').all()
+	else:
+		stocks = Stocks.query.order_by('min').all()
 	schema = StockSchema(many=True)
 	stocks_list = schema.dump(stocks)
-
-	for i,stock in enumerate(stocks):
-		Member.bought[i] = round(stock.price*Member.quant[i],2)
-
+	for i,stock in enumerate(Stocks.query.all()):
+		Member.bought[i] = round(stock.price*Member.quant[i],3)
 	count_profit()
 	return jsonify(stocks = stocks_list, result = time.time(), bought = Member.bought, profit = Member.profit )
+
+@app.route('/order_table', methods = ['GET','POST'])
+def order():
+	if(request.method=='POST'):
+		number = request.form['name']
+		Member.table_ordered = int(number)
+		top_down = Member.top_down
+		if(Member.table_ordered==0):
+			stocks = Stocks.query.all()
+		elif(Member.table_ordered==1):
+			if(top_down==True):
+				stocks = Stocks.query.order_by('name').all()
+				top_down = False
+			else:
+				stocks = Stocks.query.order_by(desc('name')).all()
+				top_down = True
+		elif(Member.table_ordered==2):
+			if(top_down==True):
+				stocks = Stocks.query.order_by('price').all()
+				top_down=False
+			else:
+				stocks = Stocks.query.order_by(desc('price')).all()
+				top_down = True
+		elif(Member.table_ordered==3):
+			if(top_down==True):
+				stocks = Stocks.query.order_by('change').all()
+				top_down=False
+			else:
+				stocks = Stocks.query.order_by(desc('change')).all()
+				top_down = True
+		elif(Member.table_ordered==4):
+
+			if(top_down==True):
+				stocks = Stocks.query.order_by('perc').all()
+				top_down=False
+				print('tak',top_down)
+			else:
+				stocks = Stocks.query.order_by(desc('perc')).all()
+				top_down = True
+				print('nie')
+		elif(Member.table_ordered==5):
+			if(top_down==True):
+				stocks = Stocks.query.order_by('opening').all()
+				top_down=False
+			else:
+				stocks = Stocks.query.order_by(desc('opening')).all()
+				top_down = True
+		elif(Member.table_ordered==6):
+			if(top_down==True):
+				stocks = Stocks.query.order_by('max').all()
+				top_down=False
+			else:
+				stocks = Stocks.query.order_by(desc('max')).all()
+				top_down = True
+		else:
+			if(top_down==True):
+				stocks = Stocks.query.order_by('min').all()
+				top_down=False
+			else:
+				stocks = Stocks.query.order_by(desc('min')).all()
+				top_down = True
+		Member.top_down = top_down
+		schema = StockSchema(many=True)
+		stocks_list = schema.dump(stocks)
+		return jsonify(stocks = stocks_list, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+
 
 if __name__ == '__main__':
 	app.run(debug=True)
