@@ -40,7 +40,8 @@ $(document).ready(function() {
                 else{
                     $('#profit'+i).text(data.profit[stock.id]+'%').css("color","rgb(225, 0, 0)");
                 }
-                $('#baton'+i).attr('member_id',stock.id);
+                $('#buy_button'+i).attr('member_id',stock.id);
+                $('#sell_button'+i).attr('member_id',stock.id);
             });
         });
         event.preventDefault();

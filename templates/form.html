@@ -6,7 +6,7 @@
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="/static/css/custom.css">
+    <link rel="stylesheet" href="/static/scss/custom.css">
     <script src="{{ url_for('static', filename='js/form.js') }}"></script>
     <script src="{{ url_for('static', filename='js/order_table.js') }}"></script>
     <script type="text/javascript">
@@ -89,18 +89,17 @@
             <span id="result">?</span>
             
             <script>
-                document.getElementById("result").innerHTML;
-                document.getElementById("stocks").innerHTML;
-                document.getElementById("bought").innerHTML;
-                document.getElementById("profit").innerHTML;
+                document.getElementById("result");
+                document.getElementById("stocks");
+                document.getElementById("bought");
+                document.getElementById("profit");
             </script>
             <form class="form-inline my-2 my-lg-0">
                 <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
                 <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
             </form>
         </div>
-    </nav> 
-
+    </nav>
 {% block content2 %}
 {% endblock %}
 

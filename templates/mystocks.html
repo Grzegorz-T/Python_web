@@ -42,27 +42,27 @@
         {% for stock in stocks %}
         <tr>
             <td class="align-middle">{{stocks.index(stock)+1}}</td>
-            <td class="align-middle" id="name{{stocks.index(stock)}}">{{stock['name']}}</td>
-            <td class="align-middle" id="price{{stocks.index(stock)}}">{{stock['price']}}</td>
-            <td class="align-middle" id="change{{stocks.index(stock)}}">{{stock['change']}}</td>
-            <td class="align-middle" id="perc{{stocks.index(stock)}}">{{stock['perc']}}%</td>
-            <td class="align-middle" id="opening{{stocks.index(stock)}}">{{stock['opening']}}</td>
-            <td class="align-middle" id="stock_max{{stocks.index(stock)}}">{{stock['stock_max']}}</td>
-            <td class="align-middle" id="stock_min{{stocks.index(stock)}}">{{stock['stock_min']}}</td>
+            <td class="align-middle" id="name{{stock['id']}}">{{stock['name']}}</td>
+            <td class="align-middle" id="price{{stock['id']}}">{{stock['price']}}</td>
+            <td class="align-middle" id="change{{stock['id']}}">{{stock['change']}}</td>
+            <td class="align-middle" id="perc{{stock['id']}}">{{stock['perc']}}%</td>
+            <td class="align-middle" id="opening{{stock['id']}}">{{stock['opening']}}</td>
+            <td class="align-middle" id="stock_max{{stock['id']}}">{{stock['stock_max']}}</td>
+            <td class="align-middle" id="stock_min{{stock['id']}}">{{stock['stock_min']}}</td>
             <td class="align-middle">
                 <form class="form-inline">
                     <div>
-                        <input type="number" class="form-control" id="Stock_Input{{stocks.index(stock)}}" min="0" max="100000" value="0">
-                        <button id="buy_button{{stocks.index(stock)}}" type="button" class="btn btn-outline-success" row_id="{{stocks.index(stock)}}" member_id="{{stock['id']}}">B</button>
-                        <button id="sell_button{{stocks.index(stock)}}" type="button" class="btn btn-outline-danger" row_id="{{stocks.index(stock)}}" member_id="{{stock['id']}}">S</button>
+                        <input type="number" class="form-control" id="Stock_Input{{stock['id']}}" min="0" max="100000" value="0">
+                        <button id="buy_button{{stock['id']}}" type="button" class="btn btn-outline-success" row_id="{{stocks.index(stock)}}" member_id="{{stock['id']}}">B</button>
+                        <button id="sell_button{{stock['id']}}" type="button" class="btn btn-outline-danger" row_id="{{stocks.index(stock)}}" member_id="{{stock['id']}}">S</button>
                     </div>
                 </form>
             </td>
             <td class="align-middle">
-                <div id="quantity{{stocks.index(stock)}}">Owned: {{quantity[stock['id']]}}</div>
-                <div id="bought{{stocks.index(stock)}}">Value: {{bought[stock['id']]}}$</div>
+                <div id="quantity{{stock['id']}}">Owned: {{quantity[stock['id']]}}</div>
+                <div id="bought{{stock['id']}}">Value: {{bought[stock['id']]}}$</div>
             </td>
-            <td class="align-middle" id="profit{{stocks.index(stock)}}">{{profit[stock['id']]}}%</td>
+            <td class="align-middle" id="profit{{stock['id']}}">{{profit[stock['id']]}}%</td>
         </tr>
         {% endfor %}
     </tbody>
