@@ -82,8 +82,8 @@ def count_profit():
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'mysecrets'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root-a@localhost/website'
+app.config['SECRET_KEY'] = 'my_secret'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root@localhost/web'
 app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
 app.config['SESSION_REFRESH_EACH_REQUEST'] = False
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -126,27 +126,44 @@ class Member:
 	profit = [0 for i in range(get_stocks_size())]
 	orders = [np.zeros([1,2]) for i in range(get_stocks_size())]
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-	update_stocks()
-	Member.stocks = Stocks.query.all()
-	schema = StockSchema(many=True)
-	stocks_list = schema.dump(Member.stocks)
-	Member.table_ordered = 0
-	return render_template('website.html', stocks = stocks_list, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+	if(request.method=='POST'):
+		if request.form["action"] == "My Stocks":
+			return redirect(url_for('my_stocks'))
+		if request.form["action"] == "Home":
+			schema = StockSchema(many=True)
+			stocks_list = schema.dump(Stocks.query.all())
+			Member.stocks = stocks_list
+			Member.table_ordered = 0
+			return render_template('website.html', stocks = stocks_list, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+	else:
+		update_stocks()
+		schema = StockSchema(many=True)
+		stocks_list = schema.dump(Stocks.query.all())
+		Member.stocks = stocks_list
+		Member.table_ordered = 0
+		return render_template('website.html', stocks = stocks_list, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
 
-@app.route('/mystocks')
+@app.route('/mystocks', methods=['GET','POST'])
 def my_stocks():
-	update_stocks()
-	stocks=[]
-	for i, value in enumerate(Member.quant):
-		if(value!=0):
-			stocks.append(Stocks.query.filter_by(id=i).first())
-	Member.stocks = stocks
-	schema = StockSchema(many=True)
-	stocks_list = schema.dump(stocks)
-	Member.table_ordered = 0
-	return render_template('website.html', stocks = stocks_list, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+	if(request.method=='POST'):
+		print('lol')
+		if request.form["action"] == "My Stocks":
+			return redirect(url_for('index'))
+		if request.form["action"] == "Home":
+			return redirect(url_for('index'))
+	else:
+		update_stocks()
+		stocks=[]
+		for i, value in enumerate(Member.quant):
+			if(value!=0):
+				stocks.append(Stocks.query.filter_by(id=i).first())
+		schema = StockSchema(many=True)
+		stocks_list = schema.dump(stocks)
+		Member.stocks = stocks_list
+		Member.table_ordered = 0
+		return render_template('website.html', stocks = stocks_list, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
 
 @app.route('/process', methods=['POST'])
 def counter():
@@ -199,12 +216,10 @@ def page():
 @app.route('/_update', methods = ['GET', 'POST'])
 def update():
 	update_stocks()
-	schema = StockSchema(many=True)
-	stocks_list = schema.dump(Member.stocks)
 	for i,stock in enumerate(Stocks.query.all()):
 		Member.bought[i] = round(stock.price*Member.quant[i],3)
 	count_profit()
-	return jsonify(stocks = stocks_list, result = time.time(), bought = Member.bought, profit = Member.profit )
+	return jsonify(stocks = Member.stocks, result = time.time(), bought = Member.bought, profit = Member.profit )
 
 @app.route('/order_table', methods = ['GET','POST'])
 def order():
@@ -215,53 +230,52 @@ def order():
 			Member.stocks = Stocks.query.all()
 		elif(Member.table_ordered==1):
 			if(Member.top_down==True):
-				Member.stocks = Stocks.query.order_by('name').all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['name'])
 				Member.top_down = False
 			else:
-				Member.stocks = Stocks.query.order_by(desc('name')).all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['name'], reverse=True)
 				Member.top_down = True
 		elif(Member.table_ordered==2):
 			if(Member.top_down==True):
-				Member.stocks = Stocks.query.order_by('price').all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['price'])
 				Member.top_down=False
 			else:
-				Member.stocks = Stocks.query.order_by(desc('price')).all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['price'], reverse=True)
 				Member.top_down = True
 		elif(Member.table_ordered==3):
 			if(Member.top_down==True):
-				Member.stocks = Stocks.query.order_by('change').all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['change'])
 				Member.top_down=False
 			else:
-				Member.stocks = Stocks.query.order_by(desc('change')).all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['change'], reverse=True)
 				Member.top_down = True
 		elif(Member.table_ordered==4):
 			if(Member.top_down==True):
-				Member.stocks = Stocks.query.order_by('perc').all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['perc'])
 				Member.top_down=False
-				print('tak',Member.top_down)
 			else:
-				Member.stocks = Stocks.query.order_by(desc('perc')).all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['perc'], reverse=True)
 				Member.top_down = True
 		elif(Member.table_ordered==5):
 			if(Member.top_down==True):
-				Member.stocks = Stocks.query.order_by('opening').all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['opening'])
 				Member.top_down=False
 			else:
-				Member.stocks = Stocks.query.order_by(desc('opening')).all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['opening'], reverse=True)
 				Member.top_down = True
 		elif(Member.table_ordered==6):
 			if(Member.top_down==True):
-				Member.stocks = Stocks.query.order_by('max').all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['stock_max'])
 				Member.top_down=False
 			else:
-				Member.stocks = Stocks.query.order_by(desc('max')).all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['stock_max'], reverse=True)
 				Member.top_down = True
 		else:
 			if(Member.top_down==True):
-				Member.stocks = Stocks.query.order_by('min').all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['stock_min'])
 				Member.top_down=False
 			else:
-				Member.stocks = Stocks.query.order_by(desc('min')).all()
+				Member.stocks = sorted(Member.stocks, key=lambda k: k['stock_min'], reverse=True)
 				Member.top_down = True
 		schema = StockSchema(many=True)
 		stocks_list = schema.dump(Member.stocks)
