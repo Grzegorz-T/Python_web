@@ -19,7 +19,7 @@ $(document).ready(function() {
 				$('#quantity'+row).text('Owned: '+ data.quantity);
 				$('#bought'+row).text('Value: '+ data.value +'$');
 				$('#profit'+row).text(data.profit +'%');
-				$('#money').text(data.money +'$');
+				$('#money').text(data.money +'$').css("color","rgb(255, 193, 5)");
 			}
 		});
 

@@ -4,7 +4,7 @@ import pandas as pd
 import html5lib
 from bs4 import BeautifulSoup
 from flask import Flask, redirect, url_for, render_template, request, session, jsonify
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, send
 import MySQLdb
@@ -29,7 +29,6 @@ def get_stocks():
 	soup = make_soup('https://www.bankier.pl/gielda/notowania/akcje')
 	a = len(soup.find_all("tr"))
 	tab = [[i] for i in range(a-1)]
-
 	for i,record in enumerate(soup.find_all("tr")):
 		for data in record.findAll("td"):
 			tab[i-1].append(data.text.strip())
@@ -70,6 +69,17 @@ def is_number(n):
 def count_profit():
 	for i in range(get_stocks_size()):
 		b_value = 0
+		a = Orders.query.filter(Orders.owned>0).filter_by(stock_id=i).order_by('order_id').all()
+		for j in a:
+			b_value += j.owned*j.purchase_price
+		if(b_value!=Member.bought[i]):
+				Member.profit[i] = round(((Member.bought[i] - b_value)/b_value)*100,3)
+		else:
+			Member.profit[i]=0
+			
+
+	'''for i in range(get_stocks_size()):
+		b_value = 0
 		if(len(Member.orders[i])>1):
 			for j in range(len(Member.orders[i])-1):
 				b_value += Member.orders[i][j][0]*Member.orders[i][j][1]
@@ -78,7 +88,7 @@ def count_profit():
 			else:
 				Member.profit[i]=0
 		else:
-			Member.profit[i]=0
+			Member.profit[i]=0'''
 
 
 app = Flask(__name__)
@@ -129,6 +139,18 @@ class Orders(db.Model):
 		self.purchase_price = purchase_price
 		self.buy_sell = buy_sell
 
+
+class Members(db.Model):
+	__tablename__='members'
+	id = db.Column('id', db.Integer, primary_key = True)
+	nick = db.Column('nick', db.Unicode)
+	money = db.Column('money', db.Float)
+
+	def __init__(self, id, nick, money):
+		self.id = id
+		self.nick = nick
+		self.money = money
+
 class StockSchema(ModelSchema):
 	class Meta:
 		model = Stocks
@@ -143,7 +165,6 @@ class Member:
 	bought = [0 for i in range(get_stocks_size())]
 	quant = [0 for i in range(get_stocks_size())]
 	profit = [0 for i in range(get_stocks_size())]
-	orders = [np.zeros([1,2]) for i in range(get_stocks_size())]
 
 	def clear():
 		if(Member.clear_orders==False):
@@ -152,7 +173,7 @@ class Member:
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-	Member.clear()
+	member = Members.query.filter_by(id=1).one()
 	if(request.method=='POST'):
 		if request.form["action"] == "My Stocks":
 			return redirect(url_for('my_stocks'))
@@ -161,14 +182,19 @@ def index():
 			stocks_list = schema.dump(Stocks.query.all())
 			Member.stocks = stocks_list
 			Member.table_ordered = 0
-			return render_template('website.html', stocks = stocks_list, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+			return render_template('website.html', stocks = stocks_list, money = member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
 	else:
 		update_stocks()
+		for i in range(get_stocks_size()):
+			a = Orders.query.with_entities(func.sum(Orders.owned).label("mySum")).filter_by(stock_id=i).first()
+			if(a.mySum):
+				Member.quant[i]=int(a.mySum)
+
 		schema = StockSchema(many=True)
 		stocks_list = schema.dump(Stocks.query.all())
 		Member.stocks = stocks_list
 		Member.table_ordered = 0
-		return render_template('website.html', stocks = stocks_list, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+		return render_template('website.html', stocks = stocks_list, money = member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
 
 @app.route('/mystocks', methods=['GET','POST'])
 def my_stocks():
@@ -178,6 +204,7 @@ def my_stocks():
 		if request.form["action"] == "Home":
 			return redirect(url_for('index'))
 	else:
+		member = Members.query.filter_by(id=1).one()
 		stocks=[]
 		for i, value in enumerate(Member.quant):
 			if(value!=0):
@@ -186,7 +213,7 @@ def my_stocks():
 		stocks_list = schema.dump(stocks)
 		Member.stocks = stocks_list
 		Member.table_ordered = 0
-		return render_template('website.html', stocks = stocks_list, money = Member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+		return render_template('website.html', stocks = stocks_list, money = member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
 
 @app.route('/process', methods=['POST'])
 def counter():
@@ -196,51 +223,69 @@ def counter():
 			input = -input
 		update_stocks()
 		ids = int(request.form['id'])
-		money = Member.money
+		member = Members.query.filter_by(id=1).one()
+		money = member.money
 		stock = Stocks.query.filter_by(id=ids).first()
 		price = stock.price
+
 		if(input>int(money/price)):
 			input = int(money/price)
+		elif input<-Member.quant[ids]:
+			input = -Member.quant[ids]
+		Member.quant[ids] = 0
+
+		orders = Orders.query.filter(Orders.owned>0).filter_by(stock_id=ids).order_by('order_id').all()
+
+		if orders:
+			for item in orders:
+				Member.quant[ids] += item.owned
+		else:
+			Member.quant[ids] = 0
+
 		if(Member.quant[ids]+input>0):
 			Member.quant[ids] = Member.quant[ids] + input
 			Member.bought[ids] = round(price*Member.quant[ids],3)
-			Member.money = round(Member.money - price*input,4)
+			member.money = round(member.money - price*input,4)
+
 			if(input>0):
 				new = Orders(1,input,input,ids,price,False)
 				db.session.add(new)
 				db.session.commit()
-				Member.orders[ids]=np.insert(Member.orders[ids],len(Member.orders[ids])-1,[input,stock.price],0)
 			else:
 				order_value = -input
 				new = Orders(1,input,0,ids,price,True)
 				db.session.add(new)
-				if(Member.orders[ids][0][0]!=0):
+				first = Orders.query.filter(Orders.owned>0).filter_by(stock_id=ids).order_by('order_id').first()
+
+				if(first.owned!=0):
+
 					while(order_value != 0):
-						upd = Orders.query.filter(Orders.owned!=0).order_by('order_id').first()
-						if(order_value>=Member.orders[ids][0][0]):
+
+						upd = Orders.query.filter(Orders.owned>0).filter_by(stock_id=ids).order_by('order_id').first()
+
+						if(order_value>=upd.owned):
+							order_value = order_value - upd.owned
 							upd.owned = 0
-							order_value = order_value - Member.orders[ids][0][0]
-							Member.orders[ids]=np.delete(Member.orders[ids],0,0)
-							print('1')
+
 						else:
-							Member.orders[ids][0][0]=Member.orders[ids][0][0]-order_value
 							upd.owned = upd.quantity - order_value
 							order_value = 0
-							print('2')
 						db.session.commit()
-			count_profit()
-			return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids], 'money':Member.money, 'profit': Member.profit[ids]})
+			#count_profit()
+			return jsonify({'money': member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids], 'profit': Member.profit[ids]})
 		
 		else:
+			zero = Orders.query.filter(Orders.owned>0).filter_by(stock_id=ids).order_by('order_id').all()
+			for item in zero:
+				item.owned = 0
 			Member.quant[ids]= 0
 			Member.bought[ids] = 0
 			Member.profit[ids] = 0
-			new = Orders(1,input,Member.quantity[ids],ids,price,True)
+			new = Orders(1,input,0,ids,price,True)
 			db.session.add(new)
+			member.money = round(member.money - price*input,4)
 			db.session.commit()
-			Member.money = round(Member.money - price*input,4)
-			Member.orders[ids]=np.zeros([1,2])
-			return jsonify({'money': Member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids], 'money':Member.money, 'profit': Member.profit[ids]})
+			return jsonify({'money': member.money, 'quantity' : Member.quant[ids], 'value' : Member.bought[ids], 'profit': Member.profit[ids]})
 	else:
 		return render_template('website.html')
 
