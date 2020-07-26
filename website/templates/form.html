@@ -10,41 +10,44 @@
     <script src="{{ url_for('static', filename='js/form.js') }}"></script>
     <script src="{{ url_for('static', filename='js/order_table.js') }}"></script>
     <script type="text/javascript">
-        var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-        var intervalID = setInterval(update_values,60000);
         function update_values() {
-        $.getJSON($SCRIPT_ROOT + '/_update',
-            function(data) {
+            var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+            var intervalID = setInterval(update_values,60000);
+            $.getJSON($SCRIPT_ROOT + '/_update', function(data) {
                 $.each(data.stocks,function(i,stock){
-                $('#name'+i).text(stock.name);
-                $('#price'+i).text(stock.price);
-                $('#perc'+i).text(stock.perc+'%');
-                if(stock.change>0){
-                    $('#change'+i).text(stock.change).css("color","rgb(0, 200, 0)");
-                    $('#perc'+i).css("color","rgb(0, 200, 0)");
-                }
-                else if(stock.change==0){
-                    $('#change'+i).text(stock.change);
-                }
-                else{
-                    $('#change'+i).text(stock.change).css("color","rgb(225, 0, 0)");
-                    $('#perc'+i).css("color","rgb(225, 0, 0)");
-                }
-                $('#opening'+i).text(stock.opening);
-                $('#stock_max'+i).text(stock.stock_max);
-                $('#stock_min'+i).text(stock.stock_min);
-                $('#bought'+i).text('Value: '+data.bought[stock.id]+'$');
-                if(data.profit[stock.id]>0){
-                    $('#profit'+i).text(data.profit[stock.id]+'%').css("color","rgb(0, 200, 0)");
-                }
-                else if(data.profit[stock.id]==0){
-                    $('#profit'+i).text(data.profit[stock.id]+'%');
-                }
-                else{
-                    $('#profit'+i).text(data.profit[stock.id]+'%').css("color","rgb(225, 0, 0)");
-                }
+                    $('#name'+i).text(stock.name);
+                    $('#price'+i).text(stock.price);
+                    $('#opening'+i).text(stock.opening);
+                    $('#stock_max'+i).text(stock.stock_max);
+                    $('#stock_min'+i).text(stock.stock_min);
+                    $('#bought'+i).text('Value: '+data.bought[stock.id]+'$');
+                    if(stock.change>0){
+                        $('#change'+i).text(stock.change).css("color","rgb(0, 200, 0)");
+                        $('#perc'+i).text(stock.perc+'%').css("color","rgb(0, 200, 0)");
+                    }
+                    else if(stock.change==0){
+                        $('#change'+i).text(stock.change);
+                        $('#perc'+i).text(stock.perc+'%');
+                    }
+                    else{
+                        $('#change'+i).text(stock.change).css("color","rgb(225, 0, 0)");
+                        $('#perc'+i).text(stock.perc+'%').css("color","rgb(225, 0, 0)");
+                    }
+                    if(data.profit[stock.id]>0){
+                        $('#profit'+i).text(data.profit[stock.id]+'%').css("color","rgb(0, 200, 0)");
+                    }
+                    else if(data.profit[stock.id]==0){
+                        $('#profit'+i).text(data.profit[stock.id]+'%');
+                    }
+                    else{
+                        $('#profit'+i).text(data.profit[stock.id]+'%').css("color","rgb(225, 0, 0)");
+                    }
+                });
             });
-        });
+        };
+
+        window.onload = function(){
+            update_values();
         };
     </script>
     <style>
@@ -54,7 +57,7 @@
         }
     </style>
 </head>
-<body onload="update_values();">
+<body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
         <a class="navbar-brand text-warning" href="#">OpenStock</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
