@@ -1,2 +1,2 @@
-An example of a form submitted using AJAX with jQuery and Flask.
+A website where you can buy virtual stocks from GPW.
 
