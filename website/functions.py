@@ -63,13 +63,11 @@ def count_profit():
 
 def count_one_profit(id):
 	previous_value = 0
-	for item in Member.bought_stocks:
-		if(item['id']==id):
-			current_value = item['bought']
+	current_value = Member.bought_stocks[id]['bought']
 	a = Orders.query.filter(Orders.owned>0).filter_by(stock_id=id).order_by('order_id').all()
 	for j in a:
 		previous_value += j.owned*j.purchase_price
-		profit = round(((current_value - previous_value)/previous_value)*100,3)
+	profit = round(((current_value - previous_value)/previous_value)*100,3)
 	return profit
 			
 
@@ -90,7 +88,7 @@ class Member:
 	table_ordered = 0
 	top_down = False
 	stocks = []
-	bought_stocks = []
+	bought_stocks = {}
 	clear_orders = False
 	bought = [0 for i in range(get_stocks_size())]
 	quant = [0 for i in range(get_stocks_size())]

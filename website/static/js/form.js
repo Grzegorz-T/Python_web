@@ -9,7 +9,7 @@ $(document).ready(function() {
 			data : {
 				id: member_id,
 				quantity: quant,
-				bors: 0,
+				buy_sell: 0,
 			},
 			type : 'POST',
 			url : '/process'
@@ -36,7 +36,7 @@ $(document).ready(function() {
 			data : {
 				id: member_id,
 				quantity: quant,
-				bors: 1,
+				buy_sell: 1,
 			},
 			type : 'POST',
 			url : '/process'

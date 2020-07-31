@@ -19,7 +19,7 @@ def index():
 			stocks_list = schema.dump(Stocks.query.all())
 			Member.stocks = stocks_list
 			Member.table_ordered = 0
-			return render_template('website.html', stocks = stocks_list, money = member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+			return render_template('website.html', stocks = stocks_list, money = member.money, bought_stocks=Member.bought_stocks)
 	else:
 		update_stocks()
 		Member.bought_stocks.clear()
@@ -29,8 +29,7 @@ def index():
 		for j,item in enumerate(a):
 			b = Orders.query.with_entities(func.sum(Orders.owned).label("mySums")).filter_by(stock_id=item['id']).first()
 			if(b.mySums):
-				Member.bought_stocks.append({'id': j, 'quantity': int(b.mySums), 'bought': round(item['price']*int(b.mySums),3), 'profit': 0})
-		print(Member.bought_stocks)
+				Member.bought_stocks.update({j:{'quantity': int(b.mySums), 'bought': round(item['price']*int(b.mySums),3), 'profit': 0}})
 
 		for i in range(get_stocks_size()):
 			a = Orders.query.with_entities(func.sum(Orders.owned).label("mySum")).filter_by(stock_id=i).first()
@@ -40,7 +39,7 @@ def index():
 		stocks_list = schema.dump(Stocks.query.all())
 		Member.stocks = stocks_list
 		Member.table_ordered = 0
-		return render_template('website.html', stocks = stocks_list, money = member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+		return render_template('website.html', stocks = stocks_list, money = member.money, bought_stocks=Member.bought_stocks)
 
 @app.route('/mystocks', methods=['GET','POST'])
 def my_stocks():
@@ -57,38 +56,45 @@ def my_stocks():
 		stocks_list = schema.dump(stocks)
 		Member.stocks = stocks_list
 		Member.table_ordered = 0
-		return render_template('website.html', stocks = stocks_list, money = member.money, quantity = Member.quant, bought = Member.bought, profit = Member.profit)
+		return render_template('website.html', stocks = stocks_list, money = member.money, bought_stocks=Member.bought_stocks)
 
 @app.route('/process', methods=['POST'])
 def counter():
 	input = int(request.form['quantity'])
+
 	if(is_number(input) and input>0 and input<=1000000):
-		if(int(request.form['bors'])==1):
-			input = -input
 		update_stocks()
 		ids = int(request.form['id'])
 		member = Members.query.filter_by(id=1).one()
-		money = member.money
 		stock = Stocks.query.filter_by(id=ids).first()
+		money = member.money
 		price = stock.price
-
-		jest=False
-		if(Member.bought_stocks):
-			for item in Member.bought_stocks:
-				if(item['id']==ids):
-					ilosc = item['quantity']
-					jest = True
-			if(jest==False):
-				Member.bought_stocks.append({'id': ids, 'quantity': 0, 'bought': 0, 'profit': 0})
-				ilosc = 0 
+		error=False
+		maximum=int(money/price)
+		if ids in Member.bought_stocks:
+			ilosc = Member.bought_stocks[ids]['quantity']
+			if(int(request.form['buy_sell'])==0):
+				if(maximum!=0):
+					if(input>maximum):
+						input = maximum
+				else:
+					error=True
+			elif(input>ilosc):
+				input=-ilosc
+			else:
+				input=-input
 		else:
-			Member.bought_stocks.append({'id': ids, 'quantity': 0, 'bought': 0, 'profit': 0})
-			ilosc = 0
-
-		if(input>int(money/price)):
-			input = int(money/price)
-		elif input<-ilosc:
-			input = -ilosc
+			if(int(request.form['buy_sell'])==0):
+				if(maximum!=0):
+					if(input>maximum):
+						input=maximum
+						Member.bought_stocks.update({ids:{'quantity': 0, 'bought': 0, 'profit': 0}})
+					else:
+						Member.bought_stocks.update({ids:{'quantity': 0, 'bought': 0, 'profit': 0}})
+				else:
+					error=True
+			else:
+				error=True
 		ilosc = 0
 
 		orders = Orders.query.filter(Orders.owned>0).filter_by(stock_id=ids).order_by('order_id').all()
@@ -98,13 +104,10 @@ def counter():
 				ilosc += item.owned
 		else:
 			ilosc = 0
-
-		if(ilosc+input>0):
+		if(ilosc+input>0 and error!=True):
 			ilosc = ilosc + input
-			for item in Member.bought_stocks:
-				if(item['id']==ids):
-					item['bought'] = round(price*ilosc,3)
-					item['quantity'] = item['quantity'] + input
+			Member.bought_stocks[ids]['bought'] = round(price*ilosc,3)
+			Member.bought_stocks[ids]['quantity'] = Member.bought_stocks[ids]['quantity'] + input
 			wartosc = round(price*ilosc,3)
 			Member.bought[ids] = round(price*ilosc,3)
 			member.money = round(member.money - price*input,4)
@@ -130,10 +133,10 @@ def counter():
 							upd.owned = upd.quantity - order_value
 							order_value = 0
 						db.session.commit()
-			print(Member.bought_stocks)
+
 			return jsonify({'money': member.money, 'quantity' : ilosc, 'value' : wartosc, 'profit': count_one_profit(ids)})
 		
-		else:
+		elif(error!=True):
 			zero = Orders.query.filter(Orders.owned>0).filter_by(stock_id=ids).order_by('order_id').all()
 			for item in zero:
 				item.owned = 0
@@ -143,14 +146,14 @@ def counter():
 			ilosc = 0
 			wartosc = 0
 			profit = 0
-			for j,item in enumerate(Member.bought_stocks):
-				if(item['id']==ids):
-					del Member.bought_stocks[j]
+			del Member.bought_stocks[ids]
 			new = Orders(1,input,0,ids,price,True)
 			db.session.add(new)
 			member.money = round(member.money - price*input,4)
 			db.session.commit()
 			return jsonify({'money': member.money, 'quantity' : ilosc, 'value' : wartosc, 'profit': profit})
+		else:
+			return jsonify({'money': member.money, 'quantity' : 0, 'value' : 0, 'profit': 0})
 	else:
 		return render_template('website.html')
 
@@ -161,12 +164,12 @@ def page():
 @app.route('/_update', methods = ['POST'])
 def update():
 	update_stocks()
-	for i,stock in enumerate(Member.bought_stocks):
-		stock['bought']=round(stock['quantity']*Member.stocks[stock['id']]['price'],3)
-	for i,stock in enumerate(Member.stocks):
-		Member.bought[stock['id']] = round(stock['price']*Member.quant[stock['id']],3)
-	count_profit()
-	return jsonify(stocks = Member.stocks, bought = Member.bought, profit = Member.profit )
+	if(Member.bought_stocks):
+		for item in Member.stocks:
+			if item['id'] in Member.bought_stocks:
+				Member.bought_stocks[item['id']]['bought']=round(Member.bought_stocks[item['id']]['quantity']*Member.stocks[item['id']]['price'],3)
+				Member.bought_stocks[item['id']]['profit']=count_one_profit(item['id'])
+	return jsonify(stocks = Member.stocks, bought_stocks=Member.bought_stocks )
 
 @app.route('/order_table', methods = ['POST'])
 def order():
