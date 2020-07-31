@@ -19,7 +19,7 @@ $(document).ready(function() {
 				$('#quantity'+row).text('Owned: '+ data.quantity);
 				$('#bought'+row).text('Value: '+ data.value +'$');
 				$('#profit'+row).text(data.profit +'%');
-				$('#money').text(data.money +'$').css("color","rgb(255, 193, 5)");
+				$('#money').text(data.money +'$');
 			}
 		});
 
@@ -46,7 +46,7 @@ $(document).ready(function() {
 				$('#quantity'+row).text('Owned: '+ data.quantity);
 				$('#bought'+row).text('Value: '+ data.value +'$');
 				$('#profit'+row).text(data.profit +'%');
-				$('#money').text(data.money +'$').css("color","rgb(0, 128, 0)");
+				$('#money').text(data.money +'$').css("color","rgb(255, 193, 7)");
 			}
 		});
 

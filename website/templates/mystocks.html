@@ -1,9 +1,11 @@
 {% extends "form.html" %}
 {% block content1 %}
 <label>
-    <a style="color: #ffc107;">Środki</a>
-    <div id="money">
-        <b style="color: #ffc107;">{{money}}$</b>
+    <div class="text-warning">
+        <a>Środki</a>
+        <div id="money">
+            <b>{{money}}$</b>
+        </div>
     </div>
 </label>
 {% endblock %}
@@ -59,10 +61,10 @@
                 </form>
             </td>
             <td class="align-middle">
-                <div id="quantity{{stock['id']}}">Owned: {{quantity[stock['id']]}}</div>
-                <div id="bought{{stock['id']}}">Value: {{bought[stock['id']]}}$</div>
+                <div id="quantity{{stock['id']}}">Owned: {{bought_stocks[stock['id']]['quantity']}}</div>
+                <div id="bought{{stock['id']}}">Value: {{bought_stocks[stock['id']]['bought']}}$</div>
             </td>
-            <td class="align-middle" id="profit{{stock['id']}}">{{profit[stock['id']]}}%</td>
+            <td class="align-middle" id="profit{{stock['id']}}">{{bought_stocks[stock['id']]['profit']}}%</td>
         </tr>
         {% endfor %}
     </tbody>

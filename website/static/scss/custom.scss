@@ -4,11 +4,9 @@
     border-radius:.8em;
 }
 $border-radius:2rem;
+$table-hover-bg: rgba(rgb(90, 146, 250), .2);
 
-$table-hover-bg: rgba(rgb(255, 166, 0), .2);
-
-@import "../../node_modules/bootstrap/scss/bootstrap";
-
+@import "../../bootstrap/scss/bootstrap";
 
 
 .main-form{

@@ -8,7 +8,7 @@ import json
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '^my_secret^42'
+app.config['SECRET_KEY'] = '^my_secret^'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root@localhost/web'
 app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
 app.config['SESSION_REFRESH_EACH_REQUEST'] = False

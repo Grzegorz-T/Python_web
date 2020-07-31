@@ -50,39 +50,15 @@ def is_number(n):
     except ValueError:
         return  False
 
-def count_profit():
-	for i in range(get_stocks_size()):
-		b_value = 0
-		a = Orders.query.filter(Orders.owned>0).filter_by(stock_id=i).order_by('order_id').all()
-		for j in a:
-			b_value += j.owned*j.purchase_price
-		if(b_value!=Member.bought[i]):
-				Member.profit[i] = round(((Member.bought[i] - b_value)/b_value)*100,3)
-		else:
-			Member.profit[i]=0
-
-def count_one_profit(id):
+def count_profit(id):
 	previous_value = 0
 	current_value = Member.bought_stocks[id]['bought']
 	a = Orders.query.filter(Orders.owned>0).filter_by(stock_id=id).order_by('order_id').all()
 	for j in a:
 		previous_value += j.owned*j.purchase_price
+	#print(current_value,'-',previous_value,')/',previous_value,')*',100)
 	profit = round(((current_value - previous_value)/previous_value)*100,3)
 	return profit
-			
-
-
-	'''for i in range(get_stocks_size()):
-		b_value = 0
-		if(len(Member.orders[i])>1):
-			for j in range(len(Member.orders[i])-1):
-				b_value += Member.orders[i][j][0]*Member.orders[i][j][1]
-			if(b_value!=Member.bought[i]):
-				Member.profit[i] = round(((Member.bought[i] - b_value)/b_value)*100,3)
-			else:
-				Member.profit[i]=0
-		else:
-			Member.profit[i]=0'''
 
 class Member:
 	table_ordered = 0
@@ -90,9 +66,6 @@ class Member:
 	stocks = []
 	bought_stocks = {}
 	clear_orders = False
-	bought = [0 for i in range(get_stocks_size())]
-	quant = [0 for i in range(get_stocks_size())]
-	profit = [0 for i in range(get_stocks_size())]
 
 	def clear():
 		if(Member.clear_orders==False):
