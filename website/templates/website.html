@@ -65,13 +65,13 @@
             {% if bought_stocks[stock['id']] %}
                 <td class="align-middle">
                     <div id="quantity{{stocks.index(stock)}}">Owned: {{bought_stocks[stock['id']]['quantity']}}</div>
-                    <div id="bought{{stocks.index(stock)}}">Value: {{bought_stocks[stock['id']]['bought']}}$</div>
+                    <div id="value{{stocks.index(stock)}}">Value: {{bought_stocks[stock['id']]['value']}}$</div>
                 </td>
                 <td class="align-middle" id="profit{{stocks.index(stock)}}">{{bought_stocks[stock['id']]['profit']}}%</td>
             {% else  %}
                 <td class="align-middle">
                     <div id="quantity{{stocks.index(stock)}}">Owned: 0</div>
-                    <div id="bought{{stocks.index(stock)}}">Value: 0$</div>
+                    <div id="value{{stocks.index(stock)}}">Value: 0$</div>
                 </td>
                 <td class="align-middle" id="profit{{stocks.index(stock)}}">0%</td>
             {% endif %}

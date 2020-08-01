@@ -2,14 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 from website import db
 from website.models import Stocks, Orders
+from website.usage_class import Member
 
-def get_stocks_size():
-	url = requests.get('https://www.bankier.pl/gielda/notowania/akcje')
-	soup = BeautifulSoup(url.content, 'html.parser')
-	a = len(soup.find_all("tr"))
-	return a
-
-def get_stocks():
+def update_stocks():
 	url = requests.get('https://www.bankier.pl/gielda/notowania/akcje')
 	soup = BeautifulSoup(url.content, 'html.parser')
 	a = len(soup.find_all("tr"))
@@ -37,11 +32,7 @@ def get_stocks():
 			upd.stock_max = float(tab[i-1][8].replace(',','.'))
 			upd.stock_min = float(tab[i-1][9].replace(',','.'))
 	db.session.commit()
-
-def update_stocks():
-    num = get_stocks()
-    print("updated")
-    return num
+	print("updated")
 
 def is_number(n):
     try:
@@ -52,22 +43,9 @@ def is_number(n):
 
 def count_profit(id):
 	previous_value = 0
-	current_value = Member.bought_stocks[id]['bought']
+	current_value = Member.bought_stocks[id]['value']
 	a = Orders.query.filter(Orders.owned>0).filter_by(stock_id=id).order_by('order_id').all()
 	for j in a:
 		previous_value += j.owned*j.purchase_price
-	#print(current_value,'-',previous_value,')/',previous_value,')*',100)
 	profit = round(((current_value - previous_value)/previous_value)*100,3)
 	return profit
-
-class Member:
-	table_ordered = 0
-	top_down = False
-	stocks = []
-	bought_stocks = {}
-	clear_orders = False
-
-	def clear():
-		if(Member.clear_orders==False):
-			Orders.query.delete()
-			Member.clear_orders=True

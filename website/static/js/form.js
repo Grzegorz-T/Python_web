@@ -17,7 +17,7 @@ $(document).ready(function() {
 		req.done(function(data) {
 			if(quant>0){
 				$('#quantity'+row).text('Owned: '+ data.quantity);
-				$('#bought'+row).text('Value: '+ data.value +'$');
+				$('#value'+row).text('Value: '+ data.value +'$');
 				$('#profit'+row).text(data.profit +'%');
 				$('#money').text(data.money +'$');
 			}

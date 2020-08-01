@@ -31,12 +31,12 @@ $(document).ready(function() {
                 $('#stock_min'+i).text(stock.stock_min);
                 if(data.values[stock.id]){
                     $('#quantity'+i).text('Owned: 0');
-                    $('#bought'+i).text('Value: 0$');
+                    $('#value'+i).text('Value: 0$');
                     $('#profit'+i).text('0%');
                     $('#buy_button'+i).attr('member_id',stock.id);
                     $('#sell_button'+i).attr('member_id',stock.id);
                     $('#quantity'+i).text('Owned: '+data.values[stock.id]['quantity']);
-                    $('#bought'+i).text('Value: '+data.values[stock.id]['bought']+'$');
+                    $('#value'+i).text('Value: '+data.values[stock.id]['value']+'$');
                     if(data.values[stock.id]['profit']>0){
                         $('#profit'+i).text(data.values[stock.id]['profit']+'%').css("color","rgb(0, 200, 0)");
                     }
@@ -51,7 +51,7 @@ $(document).ready(function() {
                 }
                 else{
                     $('#quantity'+i).text('Owned: 0');
-                    $('#bought'+i).text('Value: 0$');
+                    $('#value'+i).text('Value: 0$');
                     $('#profit'+i).text('0%');
                     $('#buy_button'+i).attr('member_id',stock.id);
                     $('#sell_button'+i).attr('member_id',stock.id);

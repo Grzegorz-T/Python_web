@@ -4,7 +4,8 @@ import html5lib
 from flask import redirect, url_for, render_template, request, session, jsonify
 from sqlalchemy import desc, func
 from website import app, db
-from website.functions import Member, get_stocks_size, update_stocks, is_number, count_profit
+from website.usage_class import Member
+from website.functions import update_stocks, is_number, count_profit
 from website.models import Stocks, Members, Orders, StockSchema
 
 
@@ -29,7 +30,7 @@ def index():
 		for j,item in enumerate(a):
 			b = Orders.query.with_entities(func.sum(Orders.owned).label("mySum")).filter_by(stock_id=item['id']).first()
 			if(b.mySum):
-				Member.bought_stocks.update({ item['id']:{'quantity': int(b.mySum), 'bought': round(item['price']*int(b.mySum),3), 'profit': 0}})
+				Member.bought_stocks.update({ item['id']:{'quantity': int(b.mySum), 'value': round(item['price']*int(b.mySum),3), 'profit': 0}})
 				Member.bought_stocks[item['id']]['profit'] = count_profit(item['id'])
 		
 		stocks_list = schema.dump(Stocks.query.all())
@@ -50,7 +51,7 @@ def my_stocks():
 		for j,item in enumerate(a):
 			b = Orders.query.with_entities(func.sum(Orders.owned).label("mySum")).filter_by(stock_id=item['id']).first()
 			if(b.mySum):
-				Member.bought_stocks.update({ item['id']:{'quantity': int(b.mySum), 'bought': round(item['price']*int(b.mySum),3), 'profit': 0}})
+				Member.bought_stocks.update({ item['id']:{'quantity': int(b.mySum), 'value': round(item['price']*int(b.mySum),3), 'profit': 0}})
 				Member.bought_stocks[item['id']]['profit'] = count_profit(item['id'])
 
 		stocks=[]
@@ -92,9 +93,9 @@ def counter():
 				if(maximum!=0):
 					if(input>maximum):
 						input=maximum
-						Member.bought_stocks.update({ids:{'quantity': 0, 'bought': 0, 'profit': 0}})
+						Member.bought_stocks.update({ids:{'quantity': 0, 'value': 0, 'profit': 0}})
 					else:
-						Member.bought_stocks.update({ids:{'quantity': 0, 'bought': 0, 'profit': 0}})
+						Member.bought_stocks.update({ids:{'quantity': 0, 'value': 0, 'profit': 0}})
 				else:
 					error=True
 			else:
@@ -110,7 +111,7 @@ def counter():
 			ilosc = 0
 		if(ilosc+input>0 and error!=True):
 			ilosc = ilosc + input
-			Member.bought_stocks[ids]['bought'] = round(price*ilosc,3)
+			Member.bought_stocks[ids]['value'] = round(price*ilosc,3)
 			Member.bought_stocks[ids]['quantity'] = Member.bought_stocks[ids]['quantity'] + input
 			wartosc = round(price*ilosc,3)
 			member.money = round(member.money - price*input,4)
@@ -163,7 +164,7 @@ def update():
 	if(Member.bought_stocks):
 		for i,item in enumerate(Member.stocks):
 			if item['id'] in Member.bought_stocks:
-				Member.bought_stocks[item['id']]['bought']=round(Member.bought_stocks[item['id']]['quantity']*Member.stocks[i]['price'],3)
+				Member.bought_stocks[item['id']]['value']=round(Member.bought_stocks[item['id']]['quantity']*Member.stocks[i]['price'],3)
 				Member.bought_stocks[item['id']]['profit']=count_profit(item['id'])
 	return jsonify(stocks = Member.stocks, bought_stocks=Member.bought_stocks )
 

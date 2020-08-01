@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>AJAX Example</title>
-
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="/static/scss/custom.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script src="{{ url_for('static', filename='js/form.js') }}"></script>
     <script src="{{ url_for('static', filename='js/order_table.js') }}"></script>
     <script type="text/javascript">
@@ -24,7 +22,7 @@
                 $('#stock_max'+i).text(stock.stock_max);
                 $('#stock_min'+i).text(stock.stock_min);
                 if(data.bought_stocks[stock.id]){
-                    $('#bought'+i).text('Value: '+data.bought_stocks[stock.id]['bought']+'$');
+                    $('#value'+i).text('Value: '+data.bought_stocks[stock.id]['value']+'$');
                 }
                 if(stock.change>0){
                     $('#change'+i).text(stock.change).css("color","rgb(0, 200, 0)");
