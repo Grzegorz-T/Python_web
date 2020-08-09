@@ -26,7 +26,7 @@ class Stocks(db.Model):
 class Orders(db.Model):
 	__tablename__='orders'
 	order_id = db.Column('order_id', db.Integer, primary_key = True)
-	member_id = db.Column('member_id', db.Integer)
+	member_id = db.Column('member_id', db.Integer, index = True)
 	quantity = db.Column('quantity', db.Integer)
 	owned = db.Column('owned', db.Integer)
 	stock_id = db.Column('stock_id', db.Integer, index = True)

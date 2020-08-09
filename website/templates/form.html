@@ -55,9 +55,22 @@
     };
     </script>
     <style>
-        .table.sticky th{
+        table {
+        text-align: left;
+        position: relative;
+        border-collapse: collapse; 
+        }
+        nav{
+            box-shadow: inset 0 1px #000;
+        }
+        th {
+            box-shadow: inset 0 1px #000;
+            background: white;
             position: sticky;
-            top: 72px;
+            top: 71px;
+        }
+        tr td:nth-child(1){
+            font-weight: 700;
         }
     </style>
 </head>
