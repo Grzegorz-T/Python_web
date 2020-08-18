@@ -86,7 +86,7 @@
                     <input class="btn btn-outline-warning my-2 my-sm-0" type="submit" name="action" value="Home"></input>
                 </form>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Link</a>
+                    <a class="nav-link" href="/charts">charts</a>
                 </li>
                 <li c lass="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -103,11 +103,23 @@
                     <input class="btn btn-outline-warning my-2 my-sm-0" type="submit" name="action" value="My stocks"></input>
                 </form>
             </ul>
-            {% block content1 %}
-            {% endblock %}
+            <label>
+                <div class="text-warning">
+                    <a>Środki</a>
+                    <b>
+                        <div id="money">
+                            {{money}}$
+                        </div>
+                    </b>
+                </div>
+            </label>
         </div>
     </nav>
-{% block content2 %}
+{% block content %}
+{% endblock %}
+{% block charts %}
+{% endblock %}
+{% block jquery %}
 {% endblock %}
 
 

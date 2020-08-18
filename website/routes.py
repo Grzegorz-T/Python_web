@@ -7,10 +7,11 @@ from website import app, db
 from website.usage_class import Member
 from website.functions import update_stocks, is_number, count_profit
 from website.models import Stocks, Members, Orders, StockSchema
-
+from datetime import datetime
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+	print(str(datetime.now().isoformat(' ', 'seconds')))
 	member = Members.query.filter_by(id=1).one()
 	if(request.method=='POST'):
 		if request.form["action"] == "My stocks":
@@ -65,96 +66,124 @@ def my_stocks():
 
 @app.route('/process', methods=['POST'])
 def counter():
-	input = int(request.form['quantity'])
-
-	if(is_number(input) and input>0 and input<=1000000):
-		update_stocks()
-		ids = int(request.form['id'])
-		member = Members.query.filter_by(id=1).one()
-		stock = Stocks.query.filter_by(id=ids).first()
-		price = stock.price
-		error=False
-		maximum=int(member.money/price)
+	member = Members.query.filter_by(id=1).one()
+	ids = int(request.form['id'])
+	
+	if(is_number(request.form['quantity'])):
+		input = int(request.form['quantity'])
+		if(input<0 or input>1000000):
+			if ids in Member.bought_stocks:
+				return jsonify({'money': member.money, 'quantity' : Member.bought_stocks[ids]['quantity'], 'value' : Member.bought_stocks[ids]['value'], 'profit': Member.bought_stocks[ids]['profit']})
+			else:
+				return jsonify({'money': member.money, 'quantity' : 0, 'value' : 0, 'profit': 0})
+	else:
 		if ids in Member.bought_stocks:
-			quantity = Member.bought_stocks[ids]['quantity']
-			if(int(request.form['buy_sell'])==0):
-				if(maximum!=0):
-					if(input>maximum):
-						input = maximum
-				else:
-					error=True
-			elif(input>quantity):
-				input=-quantity
-			else:
-				input=-input
-		else:
-			if(int(request.form['buy_sell'])==0):
-				if(maximum!=0):
-					if(input>maximum):
-						input=maximum
-						Member.bought_stocks.update({ids:{'quantity': 0, 'value': 0, 'profit': 0}})
-					else:
-						Member.bought_stocks.update({ids:{'quantity': 0, 'value': 0, 'profit': 0}})
-				else:
-					error=True
-			else:
-				error=True
-
-		quantity = 0
-		a = Orders.query.with_entities(func.sum(Orders.owned).label("mySum")).filter_by(stock_id=ids).one()
-		if a.mySum:
-			quantity = a.mySum
-		else:
-			quantity = 0
-
-		if(quantity+input>0 and error!=True):
-			quantity = quantity + input
-			Member.bought_stocks[ids]['value'] = round(price*quantity,3)
-			Member.bought_stocks[ids]['quantity'] = Member.bought_stocks[ids]['quantity'] + input
-			value = round(price*quantity,3)
-			member.money = round(member.money - price*input,4)
-
-			if(input>0):
-				new = Orders(1,input,input,ids,price,False)
-				db.session.add(new)
-				db.session.commit()
-			else:
-				order_value = -input
-				new = Orders(1,input,0,ids,price,True)
-				db.session.add(new)
-				while(order_value != 0):
-					upd = Orders.query.filter(Orders.owned>0).filter_by(stock_id=ids).order_by('order_id').first()
-					if(order_value>=upd.owned):
-						order_value = order_value - upd.owned
-						upd.owned = 0
-					else:
-						upd.owned = upd.owned - order_value
-						order_value = 0
-					db.session.commit()
-
-			return jsonify({'money': member.money, 'quantity' : quantity, 'value' : value, 'profit': count_profit(ids)})
-		
-		elif(error!=True):
-			tozero = Orders.query.filter(Orders.owned>0).filter_by(stock_id=ids).order_by('order_id').all()
-			for item in tozero:
-				item.owned = 0
-			quantity = 0
-			value = 0
-			profit = 0
-			member.money = round(member.money - price*input,4)
-			del Member.bought_stocks[ids]
-			new = Orders(1,input,0,ids,price,True)
-			db.session.add(new)
-			db.session.commit()
-			return jsonify({'money': member.money, 'quantity' : quantity, 'value' : value, 'profit': profit})
+			return jsonify({'money': member.money, 'quantity' : Member.bought_stocks[ids]['quantity'], 'value' : Member.bought_stocks[ids]['value'], 'profit': Member.bought_stocks[ids]['profit']})
 		else:
 			return jsonify({'money': member.money, 'quantity' : 0, 'value' : 0, 'profit': 0})
-	else:
-		return jsonify({'money': member.money, 'quantity' : 0, 'value' : 0, 'profit': 0})
+	
+	update_stocks()
+	stock = Stocks.query.filter_by(id=ids).first()
+	price = stock.price
 
-@app.route('/page')
-def page():
-	return render_template('form.html')
+	quantity = 0
+	a = Orders.query.with_entities(func.sum(Orders.owned).label("mySum")).filter_by(stock_id=ids).one()
+	if a.mySum:
+		quantity = int(a.mySum)
+	else:
+		quantity = 0
+
+	maximum=int(member.money/price)
+	if(int(request.form['buy_sell'])==0):
+		if(maximum!=0):
+			Member.bought_stocks.update({ids:{'quantity': 0, 'value': 0, 'profit': 0}})
+			if(input>maximum):
+				input = maximum
+		else:
+			if ids in Member.bought_stocks:
+				return jsonify({'money': member.money, 'quantity' : Member.bought_stocks[ids]['quantity'], 'value' : Member.bought_stocks[ids]['value'], 'profit': Member.bought_stocks[ids]['profit']})
+			else:
+				return jsonify({'money': member.money, 'quantity' : 0, 'value' : 0, 'profit': 0})
+		
+		quantity = quantity + input
+		Member.bought_stocks[ids]['value'] = round(price*quantity,3)
+		Member.bought_stocks[ids]['quantity'] = Member.bought_stocks[ids]['quantity'] + input
+		value = round(price*quantity,3)
+		member.money = round(member.money - price*input,4)
+		new = Orders(1,input,input,ids,price,False,str(datetime.now().isoformat(' ', 'seconds')))
+		db.session.add(new)
+		db.session.commit()
+		return jsonify({'money': member.money, 'quantity' : quantity, 'value' : value, 'profit': count_profit(ids)})
+	
+	else:
+		if(input<quantity):
+			quantity = quantity - input
+			value = round((quantity)*price,4)
+			Member.bought_stocks
+			left = input
+			new = Orders(1,input,0,ids,price,True,str(datetime.now().isoformat(' ', 'seconds')))
+			db.session.add(new)
+			while(left != 0):
+				upd = Orders.query.filter(Orders.owned>0).filter_by(stock_id=ids).order_by('order_id').first()
+				if(left>=upd.owned):
+					left = left - upd.owned
+					upd.owned = 0
+				else:
+					upd.owned = upd.owned - left
+					left = 0
+				db.session.commit()
+			Member.bought_stocks[ids]['value']=value
+			return jsonify({'money': member.money, 'quantity' : quantity, 'value' : value, 'profit': count_profit(ids)})
+
+		else:
+			if(quantity!=0):
+				input=quantity
+				tozero = Orders.query.filter(Orders.owned>0).filter_by(stock_id=ids).order_by('order_id').all()
+				for item in tozero:
+					item.owned = 0
+				quantity = 0
+				value = 0
+				profit = 0
+				member.money = round(member.money + price*input,4)
+				del Member.bought_stocks[ids]
+				new = Orders(1,input,0,ids,price,True)
+				db.session.add(new)
+				db.session.commit()
+				return jsonify({'money': member.money, 'quantity' : quantity, 'value' : value, 'profit': profit})
+			else:
+				return jsonify({'money': member.money, 'quantity' : 0, 'value' : 0, 'profit': 0})
+
+
+@app.route('/charts')
+def charts():
+	member = Members.query.filter_by(id=1).one()
+	return render_template('charts.html', money = member.money)
+
+@app.route('/_upd_charts')
+def upd_charts():
+	schema = StockSchema(many=True)
+	a = schema.dump(Stocks.query.all())
+	for j,item in enumerate(a):
+		b = Orders.query.with_entities(func.sum(Orders.owned).label("mySum")).filter_by(stock_id=item['id']).first()
+		if(b.mySum):
+			Member.bought_stocks.update({ item['id']:{'quantity': int(b.mySum), 'value': round(item['price']*int(b.mySum),3), 'profit': 0}})
+			Member.bought_stocks[item['id']]['profit'] = count_profit(item['id'])
+	
+	stocks=[]
+	for value in Member.bought_stocks:
+		stocks.append(Stocks.query.filter_by(id=value).first())
+	schema = StockSchema(many=True)
+	stocks_list = schema.dump(stocks)
+	Member.stocks = stocks_list
+	labels = []
+	values = []
+	for stock in stocks_list:
+		labels.append(stock['name'])
+	df= pd.DataFrame(Member.bought_stocks)
+	values = df.loc['value'].sort_values().tolist()
+	
+	return jsonify({'labels': labels, 'values': values})
+
 
 @app.route('/_update', methods = ['POST'])
 def update():

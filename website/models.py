@@ -32,14 +32,16 @@ class Orders(db.Model):
 	stock_id = db.Column('stock_id', db.Integer, index = True)
 	purchase_price = db.Column('purchase_price', db.Float)
 	buy_sell = db.Column('buy/sell', db.Boolean)
+	date = db.Column('date', db.Date)
 
-	def __init__(self, member_id, quantity, owned, stock_id, purchase_price, buy_sell):
+	def __init__(self, member_id, quantity, owned, stock_id, purchase_price, buy_sell, date):
 		self.member_id = member_id
 		self.quantity = quantity
 		self.owned = owned
 		self.stock_id = stock_id
 		self.purchase_price = purchase_price
 		self.buy_sell = buy_sell
+		self.date = date
 
 
 class Members(db.Model):
