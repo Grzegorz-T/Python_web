@@ -1,2 +1,1 @@
-A website where you can buy/sell virtual stocks from GPW.
-
+A website where you have virtual money that allows you to buy/sell virtual stocks from GPW. It has real time updating stocks and current profit of your investemnt. It have also charts to help you look into data of your purchased stocks.
