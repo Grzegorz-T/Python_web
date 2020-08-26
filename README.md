@@ -1,2 +1,2 @@
-A website where you can buy virtual stocks from GPW.
+A website where you can buy/sell virtual stocks from GPW.
 
